@@ -1,0 +1,10 @@
+DROP TABLE IF EXISTS tx_log;
+DROP TABLE IF EXISTS accounts;
+DROP TABLE IF EXISTS customers CASCADE;
+CREATE TABLE customers (customer_id INT PRIMARY KEY, name VARCHAR(100) NOT NULL);
+CREATE TABLE accounts (account_id INT PRIMARY KEY, customer_id INT NOT NULL REFERENCES customers(customer_id), balance DECIMAL(10, 2) NOT NULL);
+CREATE TABLE tx_log (log_id SERIAL PRIMARY KEY, account_id INT NOT NULL, tx_type VARCHAR(10) NOT NULL, amount DECIMAL(10, 2) NOT NULL, tx_timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP);
+INSERT INTO customers (customer_id, name) VALUES (101, 'John Doe'), (102, 'Jane Smith');
+INSERT INTO accounts (account_id, customer_id, balance) VALUES (9001, 101, 1500.75), (9002, 102, 3250.00);
+GRANT ALL ON customers, accounts, tx_log TO postgres;
+GRANT USAGE, SELECT ON SEQUENCE tx_log_log_id_seq TO postgres;
