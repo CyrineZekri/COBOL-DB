@@ -3,7 +3,7 @@ IDENTIFICATION DIVISION.
        ENVIRONMENT DIVISION.
        INPUT-OUTPUT SECTION.
        FILE-CONTROL.
-           SELECT TX-FILE ASSIGN TO "../transactions.dat".
+           SELECT TX-FILE ASSIGN TO "transactions.dat".
        DATA DIVISION.
        FILE SECTION.
        FD  TX-FILE.
