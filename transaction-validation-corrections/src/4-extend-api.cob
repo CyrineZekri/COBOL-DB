@@ -1,5 +1,5 @@
 IDENTIFICATION DIVISION.
-       PROGRAM-ID. extend-api.
+       PROGRAM-ID. extend-ap.
        DATA DIVISION.
        WORKING-STORAGE SECTION.
        COPY "dbapi.cpy".
