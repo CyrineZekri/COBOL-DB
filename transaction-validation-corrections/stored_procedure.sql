@@ -1,13 +1,12 @@
-CREATE OR REPLACE PROCEDURE LOG_TRANSACTION(
-    p_account_id INT,
-    p_amount DECIMAL(10, 2),
-    p_tx_type VARCHAR(10)
+CREATE OR REPLACE PROCEDURE log_transaction(
+  p_account_id BIGINT,
+  p_tx_type    TEXT,
+  p_amount     NUMERIC
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    INSERT INTO tx_log (account_id, amount, tx_type)
-    VALUES (p_account_id, p_amount, p_tx_type);
+  INSERT INTO tx_log(account_id, tx_type, amount, tx_timestamp)
+  VALUES (p_account_id, p_tx_type, p_amount, NOW());
 END;
 $$;
-GRANT EXECUTE ON PROCEDURE LOG_TRANSACTION(INT, DECIMAL, VARCHAR) TO postgres;
