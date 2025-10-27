@@ -4,7 +4,7 @@
        ENVIRONMENT DIVISION.
        INPUT-OUTPUT SECTION.
        FILE-CONTROL.
-           SELECT TX-FILE ASSIGN TO "./transactions.dat"
+           SELECT TX-FILE ASSIGN TO "transactions.dat"
                   ORGANIZATION IS LINE SEQUENTIAL
                   FILE STATUS IS TX-FILE-STATUS.
 
@@ -23,8 +23,6 @@
        01  TX-ACTION            PIC X(32).
        01  TX-ACCOUNT-ID        PIC X(32).
        01  TX-AMOUNT            PIC X(32).
-       01  ACC-ID-NUM           PIC 9(9)        COMP-5.
-       01  ACC-ID-DSP           PIC 9(9).
        01  AMOUNT-NUM           PIC S9(9)V99    COMP-3.
        01  AMOUNT-DSP           PIC 9(9)V99.
        01  CURRENT-BALANCE      PIC S9(9)V99    COMP-3.
@@ -41,6 +39,7 @@
                DISPLAY "Validation FAILED: Database connection error"
                STOP RUN
            END-IF
+
            OPEN INPUT TX-FILE
            PERFORM UNTIL TX-FILE-STATUS NOT = "00"
               READ TX-FILE
@@ -60,20 +59,22 @@
               END-READ
            END-PERFORM
            CLOSE TX-FILE
+
            CALL STATIC "DB_DISCONNECT" USING BY VALUE DBH RETURNING RC
            GOBACK.
 
        VALIDATE-AND-PROCESS.
-           MOVE FUNCTION NUMVAL(FUNCTION TRIM(TX-ACCOUNT-ID)) TO ACC-ID-NUM
-           MOVE ACC-ID-NUM TO ACC-ID-DSP
-           MOVE FUNCTION NUMVAL(FUNCTION TRIM(TX-AMOUNT))     TO AMOUNT-NUM
+           MOVE FUNCTION NUMVAL(FUNCTION TRIM(TX-AMOUNT)) TO AMOUNT-NUM
            MOVE AMOUNT-NUM TO AMOUNT-DSP
 
+           MOVE SPACES TO SINGLE-RESULT-BUFFER
            MOVE SPACES TO SQL-COMMAND
-           STRING "SELECT balance FROM accounts WHERE account_id = "
-                  ACC-ID-DSP
-                  DELIMITED BY SIZE
-                  INTO SQL-LIT
+           MOVE SPACES TO SQL-LIT
+           STRING
+              "SELECT balance FROM accounts WHERE account_id = "
+              FUNCTION TRIM(TX-ACCOUNT-ID)
+              "::bigint"
+              INTO SQL-LIT
            END-STRING
            COMPUTE L = FUNCTION LENGTH(FUNCTION TRIM(SQL-LIT))
            MOVE SQL-LIT(1:L) TO SQL-COMMAND(1:L)
@@ -85,7 +86,7 @@
                      BY REFERENCE SINGLE-RESULT-BUFFER
                RETURNING RC
            IF RC NOT = 0
-               DISPLAY "Validation FAILED: Unable to read balance for account " ACC-ID-DSP
+               DISPLAY "Validation FAILED: Unable to read balance for account " FUNCTION TRIM(TX-ACCOUNT-ID)
                EXIT PARAGRAPH
            END-IF
 
@@ -95,28 +96,31 @@
            IF CURRENT-BALANCE >= WITHDRAWAL-AMOUNT
               PERFORM EXECUTE-UPDATE
            ELSE
-              DISPLAY "Validation FAILED: Insufficient funds for account " ACC-ID-DSP
+              DISPLAY "Validation FAILED: Insufficient funds for account " FUNCTION TRIM(TX-ACCOUNT-ID)
            END-IF.
 
        EXECUTE-UPDATE.
            MOVE SPACES TO SQL-COMMAND
-           STRING "UPDATE accounts SET balance = balance - "
-                  AMOUNT-DSP
-                  " WHERE account_id = "
-                  ACC-ID-DSP
-                  DELIMITED BY SIZE
-                  INTO SQL-LIT
+           MOVE SPACES TO SQL-LIT
+           STRING
+              "UPDATE accounts SET balance = balance - "
+              FUNCTION TRIM(TX-AMOUNT)
+              " WHERE account_id = "
+              FUNCTION TRIM(TX-ACCOUNT-ID)
+              "::bigint"
+              INTO SQL-LIT
            END-STRING
            COMPUTE L = FUNCTION LENGTH(FUNCTION TRIM(SQL-LIT))
            MOVE SQL-LIT(1:L) TO SQL-COMMAND(1:L)
            MOVE X"00" TO SQL-COMMAND(L + 1:1)
+
            CALL STATIC "DB_EXEC"
                USING BY VALUE DBH
                      BY REFERENCE SQL-COMMAND
                RETURNING RC
            IF RC = 0
               DISPLAY "Validation PASSED: Withdrawal of " FUNCTION TRIM(TX-AMOUNT)
-                      " from account " ACC-ID-DSP " successful."
+                      " from account " FUNCTION TRIM(TX-ACCOUNT-ID) " successful."
            ELSE
-              DISPLAY "Validation FAILED: Database update error for account " ACC-ID-DSP
+              DISPLAY "Validation FAILED: Database update error for account " FUNCTION TRIM(TX-ACCOUNT-ID)
            END-IF.
